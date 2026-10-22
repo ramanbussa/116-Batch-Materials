@@ -1,0 +1,83 @@
+# Course Progress
+
+## Topics Covered So Far
+
+### 1. Cloud Computing (AWS)
+
+* Introduction to Cloud Computing
+* EC2 (Elastic Compute Cloud)
+* S3 (Simple Storage Service)
+* IAM (Identity and Access Management)
+* VPC Basics
+* Security Groups
+* EBS Volumes
+
+### 2. Linux Administration
+
+* Linux Architecture
+* File System
+* File & Directory Management
+* User and Group Administration
+* File Permissions
+* Package Management
+* Process Management
+* Service Management
+* Networking Basics
+* Disk Management
+
+### 3. Shell Scripting
+
+* Shell Script Basics
+* Variables
+* Conditional Statements (if, case)
+* Loops (for, while, until)
+* Functions
+* Command Line Arguments
+* Scheduling with Cron
+* Automation Scripts
+
+### 4. Git & GitHub (Source Code Management)
+
+* Version Control Concepts
+* Git Installation
+* Repository Creation
+* Clone, Commit, Push & Pull
+* Branching and Merging
+* Pull Requests
+* Conflict Resolution
+* GitHub Repository Management
+
+### 5. Maven (Build Tool)
+
+* Maven Architecture
+* Project Structure
+* pom.xml
+* Maven Lifecycle
+* Dependencies
+* Plugins
+* Build, Test & Package
+* Artifact Generation
+* Local & Remote Repositories
+
+---
+
+## Next Topic
+
+### 6. SonarQube (Code Quality & Code Review)
+
+In this module, we will learn:
+
+* What is SonarQube?
+* Why Code Review is Important
+* SonarQube Architecture
+* Installing SonarQube on Amazon Linux
+* Integrating SonarQube with Maven
+* Jenkins Integration
+* Quality Profiles
+* Quality Gates
+* Sonar Tokens
+* Code Coverage
+* Best Practices
+
+
+

@@ -1,0 +1,13 @@
+Docker-Containerised Platform
+
+
+Docker compose--Outdated
+Docker swarm--Outdated
+
+
+Replaced Kubernetes
+
+
+Openshift
+
+Argocd

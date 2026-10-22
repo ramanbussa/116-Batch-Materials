@@ -1,0 +1,230 @@
+
+# Jenkins Installation on Ubuntu 24.04 LTS (AWS EC2)
+
+## Prerequisites
+
+* Ubuntu 24.04 LTS Server
+* Minimum 2 vCPU
+* Minimum 4 GB RAM
+* 25 GB Storage
+* Security Group:
+
+  * SSH (22)
+  * Jenkins (8080)
+
+---
+
+# Step 1: Update the Server
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+---
+
+# Step 2: Install Java 21
+
+Current Jenkins LTS requires **Java 21 or later**. ([Jenkins][2])
+
+```bash
+sudo apt install -y fontconfig openjdk-21-jre
+
+java --version
+```
+
+Expected Output:
+
+
+openjdk 21
+
+
+---
+
+# Step 3: Install Required Packages
+
+
+sudo apt install -y wget curl gnupg
+
+
+---
+
+# Step 4: Create Keyrings Directory
+
+
+sudo mkdir -p /etc/apt/keyrings
+```
+
+---
+
+# Step 5: Download the Latest Jenkins Repository Key
+
+
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+
+
+---
+
+# Step 6: Add Jenkins Repository
+
+
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc] \
+https://pkg.jenkins.io/debian-stable binary/" | \
+sudo tee /etc/apt/sources.list.d/jenkins.list >/dev/null
+```
+
+---
+
+# Step 7: Update Repository
+
+
+sudo apt update
+
+
+You should **not** receive:
+
+
+NO_PUBKEY
+Repository is not signed
+```
+
+---
+
+# Step 8: Install Jenkins
+
+
+sudo apt install -y jenkins
+```
+
+---
+
+# Step 9: Enable Jenkins
+
+
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+```
+
+---
+
+# Step 10: Verify Service
+
+
+sudo systemctl status jenkins
+```
+
+Expected:
+
+Active: active (running)
+```
+
+---
+
+# Step 11: Open Firewall
+
+If UFW is enabled:
+
+
+sudo ufw allow 8080
+sudo ufw reload
+```
+
+For AWS EC2:
+
+Open **TCP Port 8080** in the Security Group.
+
+
+
+---
+
+# Step 13: Get Initial Password
+
+
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+Example:
+
+```text
+6c6c27abxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+# Step 14: Access Jenkins
+
+```
+http://<Public-IP>:8080
+```
+
+Example:
+
+```
+http://13.233.xx.xx:8080
+```
+
+---
+
+# Step 15: Unlock Jenkins
+
+Paste the password obtained from:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+Click
+
+```
+Continue
+```
+
+---
+
+# Step 16: Install Suggested Plugins
+
+Click
+
+```
+Install Suggested Plugins
+```
+
+Wait 2–5 minutes.
+
+---
+
+# Step 17: Create Admin User
+
+Example:
+
+```
+Username : admin
+Password : Admin@123
+Full Name : Administrator
+Email : admin@example.com
+```
+
+---
+
+# Step 18: Instance URL
+
+```
+http://<Public-IP>:8080/
+```
+
+Click
+
+```
+Save and Finish
+```
+
+---
+
+# Step 19: Verify Jenkins
+
+Dashboard should open successfully.
+
+---
+
+

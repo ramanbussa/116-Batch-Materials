@@ -1,0 +1,872 @@
+# End-to-End CI/CD Pipeline Implementation Guide
+
+## GitHub → Jenkins → Maven → SonarQube → Nexus → Tomcat (AWS EC2)
+
+This document explains the complete implementation steps for students to build a real-time CI/CD pipeline using AWS EC2 servers.
+
+---
+
+# 1. Architecture Overview
+
+## Components Used
+
+| Component        | Purpose                       | Server               |
+| ---------------- | ----------------------------- | -------------------- |
+| GitHub           | Source code repository        | Cloud                |
+| Jenkins          | CI/CD automation server       | EC2                  |
+| Maven            | Build tool                    | Installed on Jenkins |
+| SonarQube        | Code quality analysis         | EC2                  |
+| Nexus Repository | Artifact storage              | EC2                  |
+| Tomcat           | Application deployment server | EC2                  |
+
+---
+
+## Pipeline Flow
+
+```
+Developer
+    |
+    |
+    v
+GitHub Repository
+    |
+    |
+    v
+Jenkins Pipeline
+    |
+    +----------------+
+    |                |
+    v                |
+Maven Build          |
+    |                |
+    v                |
+SonarQube Analysis   |
+    |                |
+    v                |
+Quality Gate         |
+    |                |
+    v                |
+Nexus Repository     |
+    |
+    v
+Tomcat Deployment
+    |
+    v
+Application Running
+```
+
+---
+
+# 2. AWS Infrastructure Setup
+
+Create 4 EC2 instances.
+
+## Server 1: Jenkins
+
+Example:
+
+```
+Name:
+Jenkins-Server
+
+OS:
+Ubuntu 22.04
+
+Ports:
+8080
+22
+```
+
+---
+
+## Server 2: SonarQube
+
+Example:
+
+```
+Name:
+SonarQube-Server
+
+OS:
+Ubuntu 22.04
+
+Ports:
+9000
+22
+```
+
+---
+
+## Server 3: Nexus
+
+Example:
+
+```
+Name:
+Nexus-Server
+
+OS:
+Ubuntu 22.04
+
+Ports:
+8081
+22
+```
+
+---
+
+## Server 4: Tomcat
+
+Example:
+
+```
+Name:
+Tomcat-Server
+
+OS:
+Ubuntu 22.04
+
+Ports:
+8080
+22
+```
+
+---
+
+# 3. Configure Security Groups
+
+Because all servers are in the same VPC, allow private communication.
+
+## Jenkins Security Group
+
+Inbound:
+
+```
+22  SSH
+8080 Jenkins
+```
+
+---
+
+## SonarQube Security Group
+
+Inbound:
+
+```
+22 SSH
+9000 Jenkins Private IP
+```
+
+---
+
+## Nexus Security Group
+
+Inbound:
+
+```
+22 SSH
+8081 Jenkins Private IP
+```
+
+---
+
+## Tomcat Security Group
+
+Inbound:
+
+```
+22 SSH
+8080 Jenkins Private IP
+```
+
+---
+
+# 4. Install Jenkins
+
+Connect:
+
+```bash
+ssh ubuntu@<jenkins-public-ip>
+```
+
+Update packages:
+
+```bash
+sudo apt update
+```
+
+Install Java:
+
+```bash
+sudo apt install openjdk-17-jdk -y
+```
+
+Verify:
+
+```bash
+java -version
+```
+
+---
+
+Install Jenkins:
+
+```bash
+curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | \
+sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+```
+
+Add repository:
+
+```bash
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+https://pkg.jenkins.io/debian-stable binary/ | \
+sudo tee /etc/apt/sources.list.d/jenkins.list
+```
+
+Install:
+
+```bash
+sudo apt update
+
+sudo apt install jenkins -y
+```
+
+Start:
+
+```bash
+sudo systemctl enable jenkins
+
+sudo systemctl start jenkins
+```
+
+Access:
+
+```
+http://<jenkins-ip>:8080
+```
+
+Get password:
+
+```bash
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+---
+
+# 5. Install Maven on Jenkins
+
+```bash
+sudo apt install maven -y
+```
+
+Verify:
+
+```bash
+mvn -version
+```
+
+---
+
+Jenkins:
+
+```
+Manage Jenkins
+     |
+     Tools
+     |
+     Maven Installation
+```
+
+Add:
+
+```
+Name:
+Maven
+
+Install automatically:
+Unchecked
+
+Path:
+/usr/share/maven
+```
+
+---
+
+# 6. Install Required Jenkins Plugins
+
+Go to:
+
+```
+Manage Jenkins
+ → Plugins
+```
+
+Install:
+
+```
+Git Plugin
+Pipeline Plugin
+Maven Integration Plugin
+SonarQube Scanner Plugin
+Nexus Artifact Uploader Plugin
+Deploy to Container Plugin
+```
+
+
+
+---
+
+# 7. Setup SonarQube Server
+
+SSH:
+
+```bash
+ssh ubuntu@<sonarqube-ip>
+```
+
+Install Java:
+
+```bash
+sudo apt install openjdk-17-jdk -y
+```
+
+Download SonarQube:
+
+```bash
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube.zip
+```
+
+Install:
+
+```bash
+unzip sonarqube.zip
+
+sudo mv sonarqube /opt/sonarqube
+```
+
+Create user:
+
+```bash
+sudo useradd sonar
+
+sudo chown -R sonar:sonar /opt/sonarqube
+```
+
+Start:
+
+```bash
+cd /opt/sonarqube/bin/linux-x86-64
+
+./sonar.sh start
+```
+
+Access:
+
+```
+http://<sonarqube-ip>:9000
+```
+
+Default login:
+
+```
+username:
+admin
+
+password:
+admin
+```
+
+Create token:
+
+```
+Administration
+ |
+Security
+ |
+Users
+ |
+Generate Token
+```
+
+---
+
+# 8. Configure SonarQube in Jenkins
+
+Jenkins:
+
+```
+Manage Jenkins
+ |
+System
+ |
+SonarQube Servers
+```
+
+Add:
+
+```
+Name:
+sonarqube
+
+
+Server URL:
+http://<sonarqube-private-ip>:9000
+
+
+Authentication Token:
+<token>
+```
+
+---
+
+# 9. Setup Nexus Repository
+
+SSH:
+
+```bash
+ssh ubuntu@nexus-server
+```
+
+Install Java:
+
+```bash
+sudo apt install openjdk-17-jdk -y
+```
+
+Download Nexus:
+
+```bash
+wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+```
+
+Extract:
+
+```bash
+tar -xvf latest-unix.tar.gz
+
+sudo mv nexus-* /opt/nexus
+```
+
+Start:
+
+```bash
+cd /opt/nexus/bin
+
+./nexus start
+```
+
+Access:
+
+```
+http://<nexus-ip>:8081
+```
+
+Get password:
+
+```bash
+cat /opt/sonatype-work/nexus3/admin.password
+```
+
+---
+
+## Create Repository
+
+Nexus:
+
+```
+Settings
+ |
+Repositories
+ |
+Create Repository
+ |
+maven2(hosted)
+```
+
+Name:
+
+```
+wwp-release
+```
+
+Deployment Policy:
+
+```
+Allow redeploy
+```
+
+---
+
+# 10. Install Tomcat
+
+SSH:
+
+```bash
+ssh ubuntu@tomcat-server
+```
+
+Install Java:
+
+```bash
+sudo apt install openjdk-17-jdk -y
+```
+
+Download Tomcat:
+
+```bash
+wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.14/bin/apache-tomcat-10.1.14.tar.gz
+```
+
+Extract:
+
+```bash
+sudo mkdir /opt/tomcat
+
+sudo tar -xzf apache-tomcat-10.1.14.tar.gz \
+-C /opt/tomcat --strip-components=1
+```
+
+---
+
+# 11. Configure Tomcat Manager
+
+Edit:
+
+```bash
+sudo vi /opt/tomcat/conf/tomcat-users.xml
+```
+
+Add:
+
+```xml
+<role rolename="manager-script"/>
+
+<user username="manager"
+password="Admin@123"
+roles="manager-script"/>
+```
+
+---
+
+Allow Jenkins remote access:
+
+Edit:
+
+```
+/opt/tomcat/webapps/manager/META-INF/context.xml
+```
+
+Comment:
+
+```xml
+<!--
+<Valve className="org.apache.catalina.valves.RemoteAddrValve"
+allow="127\.\d+\.\d+\.\d+|::1"/>
+-->
+```
+
+Restart:
+
+```bash
+/opt/tomcat/bin/shutdown.sh
+
+/opt/tomcat/bin/startup.sh
+```
+
+---
+
+# 12. Jenkins Credentials
+
+## Tomcat Credential
+
+Jenkins:
+
+```
+Manage Jenkins
+ |
+Credentials
+ |
+Global
+ |
+Add Credentials
+```
+
+Type:
+
+```
+Username Password
+```
+
+ID:
+
+```
+tomcat_creds
+```
+
+Username:
+
+```
+admin
+```
+
+Password:
+
+```
+Admin@123
+```
+
+---
+
+## Nexus Credential
+
+Create:
+
+```
+ID:
+nexus-creds
+```
+
+Username:
+
+```
+admin
+```
+
+Password:
+
+```
+Nexus password
+```
+=================================================================================================
+---
+
+# 13. Create Jenkins Pipeline
+
+Create:
+
+```
+New Item
+
+Name:
+cicd-pipeline
+
+Type:
+Pipeline
+```
+
+---
+
+Pipeline Script:
+
+```groovy
+pipeline {
+
+agent any
+
+
+tools {
+    maven 'Maven'
+}
+
+
+stages {
+
+
+stage('Checkout') {
+
+steps {
+
+git branch:'master',
+url:'https://github.com/ramanbussa/war-web-project.git'
+
+}
+
+}
+
+
+stage('Build') {
+
+steps {
+
+sh 'mvn clean package'
+
+}
+
+}
+
+
+stage('SonarQube Analysis') {
+
+steps {
+
+withSonarQubeEnv('sonarqube') {
+
+sh '''
+mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+-Dsonar.projectKey=wwp \
+-Dsonar.projectName=wwp
+'''
+
+}
+
+}
+
+}
+
+
+stage('Quality Gate') {
+
+steps {
+
+timeout(time:10, unit:'MINUTES') {
+
+waitForQualityGate abortPipeline:true
+
+}
+
+}
+
+}
+
+
+stage('Upload WAR to Nexus') {
+
+steps {
+
+nexusArtifactUploader(
+
+nexusVersion:'nexus3',
+
+protocol:'http',
+
+nexusUrl:'<nexus-private-ip>:8081',
+
+repository:'wwp-release',
+
+credentialsId:'nexus-creds',
+
+groupId:'com.example',
+
+version:"${BUILD_NUMBER}",
+
+
+artifacts:[
+
+[
+artifactId:'wwp',
+classifier:'',
+file:'target/wwp-1.0.0.war',
+type:'war'
+]
+
+]
+
+)
+
+}
+
+}
+
+
+stage('Deploy Tomcat') {
+
+steps {
+
+deploy(
+
+adapters:[
+
+tomcat9(
+
+credentialsId:'tomcat_creds',
+
+url:'http://<tomcat-private-ip>:8080'
+
+)
+
+],
+
+contextPath:'wwp',
+
+war:'target/wwp-1.0.0.war'
+
+)
+
+}
+
+}
+
+
+}
+
+
+post {
+
+success {
+
+echo "CI/CD Pipeline Completed Successfully"
+
+}
+
+}
+
+}
+```
+
+---
+
+# 14. Final Validation
+
+After successful build:
+
+## SonarQube
+
+Check:
+
+```
+Quality Gate Passed
+```
+
+---
+
+## Nexus
+
+Verify:
+
+```
+wwp-release
+ |
+ com/example/wwp/<build-number>
+ |
+ wwp.war
+```
+
+---
+
+## Tomcat
+
+Open:
+
+```
+http://<tomcat-public-ip>:8080/wwp
+```
+
+Application should load.
+
+---
+
+# Final Learning Outcome for Students
+
+After completing this project students understand:
+
+✅ Git integration
+✅ Jenkins CI/CD pipelines
+✅ Maven build automation
+✅ Static code analysis using SonarQube
+✅ Artifact management using Nexus
+✅ Remote deployment using Tomcat
+✅ AWS EC2 networking
+✅ Real enterprise DevOps workflow
+
+This is a complete beginner-to-intermediate DevOps CI/CD project suitable for classroom demonstration and hands-on labs.
